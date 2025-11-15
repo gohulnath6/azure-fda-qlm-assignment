@@ -1,0 +1,61 @@
+TASK 2 - Tiered, Regulated Data Lake Architecture
+
+2.1 Summary
+
+Design a secure, multi-zone data lake:
+Raw Zone – exact copy of data, immutable, encrypted
+Curated Zone – standardized, partially PHI redacted, versioned
+QLM-Ready Zone – fully PHI redacted, hashed, minimal normalized fields
+
+2.2 Storage Zones & Azure Mapping
+
+| Zone      | Description                                  | Azure Implementation   |
+| --------- | -------------------------------------------- | ---------------------- |
+| Raw       | Exact copy, immutable, encrypted             | ADLS Gen2 + WORM       |
+| Curated   | Standardized, validated, partial PHI removal | ADLS Gen2 + Delta Lake |
+| QLM-Ready | Fully PHI redacted, hashed                   | ADLS Gen2 + Delta Lake |
+
+2.3 RBAC
+
+| Role               | Raw Zone | Curated Zone | QLM-Ready Zone | Logs | API |
+| ------------------ | -------- | ------------ | -------------- | ---- | --- |
+| Data Engineer      | ✔        | ✔            | ✔              | ✔    | ✔   |
+| Data Scientist     | ✘        | ✔            | ✔              | ✘    | ✘   |
+| Compliance Officer | ✔        | ✔            | ✘              | ✔    | ✔   |
+| Analyst            | ✘        | ✘            | ✔              | ✘    | ✘   |
+
+2.4 Versioning & Audit
+
+Delta Lake tables on ADLS Gen2 (Curated & QLM zones)
+Every write produces: commit logs, snapshots, time travel
+Audit logs track: access, modifications, PHI redaction version, pipeline version
+Logs stored in immutable WORM storage
+
+2.5 Compliance Mapping
+
+| Regulation  | How Solution Meets It                                             |
+| ----------- | ----------------------------------------------------------------- |
+| HIPAA       | PHI removal, RBAC, encryption                                     |
+| FDA         | Full data lineage, integrity verification, reproducible pipelines |
+| CFR Part 11 | Timestamped transformations, immutable logs                       |
+| Security    | Encryption, RBAC, network segmentation                            |
+
+2.6 Deliverables
+
+Architecture Diagrams
+Physical (Text; PNG in repo):
+
+[Azure Portal] --> [ADLS Gen2 Account]
+                    |
+                    +--> [Containers: raw | curated | qlm-ready (Delta Tables)]
+                    |
+[Synapse Workspace] <--> [ADF Pipelines] <--> [Purview Catalog]
+                    |
+                    v
+[Log Analytics] <-- [RBAC Roles] <-- [Monitor Alerts]
+
+Logical (Text):
+Raw (Upload Files) --> ADF ETL --> Curated (Delta Validate) --> QLM-Ready (Partitioned Parquet)
+  ^ Immutable                  ^ Versioned                    ^ ML-Optimized
+  |                            |                              |
+[Access Logs] ---------------- [RBAC Gate] ---------------- [Audit Query]
