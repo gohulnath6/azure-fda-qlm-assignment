@@ -91,3 +91,8 @@ def get_provenance(record_id: str):
             return json.load(f)
     return {"error": "Record not found"}
 
+Lineage Architecture Diagram
+[Source 1: Blob JSON] --> [ADF Copy] --> [Synapse Data Flow: Validate/Scrub/Hash] --> [Parquet Sink: ADLS QLM-Ready]
+[Source 2: CSV] ---------------------^                                           |
+                                                                                  v
+[SQL: Provenance Logs + Hashes] <--> [Purview: Auto-Lineage Scan] <--> [Function API: /provenance]
