@@ -27,18 +27,19 @@ Developer and compliance documentation
 
 1.4 Technical Implementation
 
-| Component              | Azure Service / Tool                                        | Notes                                                  |
-| ---------------------- | ----------------------------------------------------------- | ------------------------------------------------------ |
-| Raw & Curated Storage  | **Azure Data Lake Storage Gen2**                            | Hierarchical namespace, encrypted, immutable           |
-| ETL Processing         | **Azure Databricks** (PySpark notebooks)                    | Handles multi-source ingestion & transformation        |
-| Multi-source Ingestion | PySpark CSV/JSON reader + HL7 parser (hl7apy)               | Easily scalable for large datasets                     |
-| Schema Validation      | `jsonschema` in Databricks notebooks                        | Validates input/output schema at every step            |
-| PHI Redaction          | Python regex / NLP rules                                    | Names → `<NAME_REDACTED>`; Phones → `<PHONE_REDACTED>` |
-| Provenance Logging     | JSON logs stored in `/audit/provenance/` in ADLS            | Append-only, immutable                                 |
-| Integrity Verification | SHA-256 hash stored in `/integrity/hashes.json`             | Ensures data integrity                                 |
-| REST API               | **FastAPI** on **Azure App Service** or **Azure Functions** | Provides `/provenance/{record_id}`                     |
-| RBAC                   | **Azure RBAC**                                              | Least-privilege access control                         |
-| Monitoring & Audit     | **Azure Monitor** + WORM storage                            | Track access and modifications for compliance          |
+| **Component**          | **Azure Service / Tool**                          | **Notes**                                              |
+| ---------------------- | ------------------------------------------------- | ------------------------------------------------------ |
+| Raw & Curated Storage  | **Azure Data Lake Storage Gen2**                  | Hierarchical namespace, encrypted, immutable           |
+| ETL Processing         | **Azure Databricks (PySpark notebooks)**          | Multi-source ingestion & transformation                |
+| Multi-source Ingestion | PySpark CSV/JSON reader + HL7 parser (**hl7apy**) | Handles large datasets                                 |
+| Schema Validation      | **jsonschema** in Databricks                      | Validates input/output schema                          |
+| PHI Redaction          | Python regex / NLP rules                          | Names → `<NAME_REDACTED>`; Phones → `<PHONE_REDACTED>` |
+| Provenance Logging     | JSON logs in `/audit/provenance/` (ADLS)          | Append-only, immutable                                 |
+| Integrity Verification | SHA-256 hashes in `/integrity/hashes.json`        | Ensures data integrity                                 |
+| REST API               | **FastAPI** on Azure App Service / Functions      | Exposes `/provenance/{record_id}`                      |
+| RBAC                   | **Azure RBAC**                                    | Enforces least-privilege access                        |
+| Monitoring & Audit     | **Azure Monitor + WORM storage**                  | Tracks access & modifications for compliance           |
+        |
 
 1.5 Example ETL Code (Databricks / PySpark)
 
