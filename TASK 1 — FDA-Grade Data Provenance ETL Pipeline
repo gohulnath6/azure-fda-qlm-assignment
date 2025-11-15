@@ -1,0 +1,93 @@
+TASK 1 — FDA-Grade Data Provenance ETL Pipeline
+
+1.1 Summary
+
+Design an end-to-end ETL pipeline to:
+Ingest clinical text from multiple sources
+Validate schema at every stage
+Scrub PHI using formal rules
+Track full provenance (timestamps, rules, transformations)
+Output QLM-ready datasets
+Expose /provenance API for lineage retrieval
+
+1.2 Inputs
+
+Raw clinical text files (CSV, JSON, HL7)
+Metadata describing each source (file name, schema version, hash)
+PHI redaction rules (names, dates, phone numbers, addresses)
+Input and output schema definitions (JSON or Parquet)
+
+1.3 Expected Outputs
+
+QLM-ready dataset (cleaned, PHI redacted, hashed)
+Provenance logs (per record / per transformation)
+Integrity verification (SHA-256 hash per batch or record)
+/provenance REST API
+Developer and compliance documentation
+
+1.4 Technical Implementation
+
+| Component              | Azure Service / Tool                                        | Notes                                                  |
+| ---------------------- | ----------------------------------------------------------- | ------------------------------------------------------ |
+| Raw & Curated Storage  | **Azure Data Lake Storage Gen2**                            | Hierarchical namespace, encrypted, immutable           |
+| ETL Processing         | **Azure Databricks** (PySpark notebooks)                    | Handles multi-source ingestion & transformation        |
+| Multi-source Ingestion | PySpark CSV/JSON reader + HL7 parser (hl7apy)               | Easily scalable for large datasets                     |
+| Schema Validation      | `jsonschema` in Databricks notebooks                        | Validates input/output schema at every step            |
+| PHI Redaction          | Python regex / NLP rules                                    | Names → `<NAME_REDACTED>`; Phones → `<PHONE_REDACTED>` |
+| Provenance Logging     | JSON logs stored in `/audit/provenance/` in ADLS            | Append-only, immutable                                 |
+| Integrity Verification | SHA-256 hash stored in `/integrity/hashes.json`             | Ensures data integrity                                 |
+| REST API               | **FastAPI** on **Azure App Service** or **Azure Functions** | Provides `/provenance/{record_id}`                     |
+| RBAC                   | **Azure RBAC**                                              | Least-privilege access control                         |
+| Monitoring & Audit     | **Azure Monitor** + WORM storage                            | Track access and modifications for compliance          |
+
+1.5 Example ETL Code (Databricks / PySpark)
+
+from pyspark.sql import SparkSession
+import hashlib, re, json
+from datetime import datetime
+
+spark = SparkSession.builder.appName("FDA_ETL").getOrCreate()
+
+def ingest_file(path, source_type):
+    if source_type == "csv":
+        df = spark.read.csv(path, header=True)
+    elif source_type == "json":
+        df = spark.read.json(path)
+    elif source_type == "hl7":
+        df = parse_hl7(path)  # Custom HL7 parser
+    return df
+
+def redact_phi(text):
+    text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "<PHONE_REDACTED>", text)
+    text = re.sub(r"\b([A-Z][a-z]+ [A-Z][a-z]+)\b", "<NAME_REDACTED>", text)
+    return text
+
+def compute_hash(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+def log_provenance(record_id, step, input_hash, output_hash):
+    entry = {
+        "record_id": record_id,
+        "timestamp": datetime.utcnow().isoformat(),
+        "transformation": step,
+        "input_hash": input_hash,
+        "output_hash": output_hash
+    }
+    with open(f"/dbfs/mnt/datalake/audit/provenance/{record_id}.json", "w") as f:
+        f.write(json.dumps(entry))
+
+1.6 Provenance REST API
+
+from fastapi import FastAPI
+import json, os
+
+app = FastAPI()
+
+@app.get("/provenance/{record_id}")
+def get_provenance(record_id: str):
+    file_path = f"/mnt/datalake/audit/provenance/{record_id}.json"
+    if os.path.exists(file_path):
+        with open(file_path) as f:
+            return json.load(f)
+    return {"error": "Record not found"}
+
