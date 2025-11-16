@@ -1,54 +1,48 @@
-# azure-fda-qlm-assignment
+# Data Engineer Assessment – FDA-Grade ETL Pipeline & Regulated Data Lake
 
-# Overview
-This project implements a production-ready ETL pipeline and tiered data lake for a Quality Language Model (QLM) under FDA, HIPAA, and CFR Part 11 regulations.
-It handles:
-Multi-source data ingestion (CSV, JSON, HL7)
-Schema validation at each stage
-PHI redaction using formal rules
-Provenance tracking for all transformations
-SHA-256 integrity verification
-Tiered Azure Data Lake storage (Raw → Curated → QLM-Ready)
-Role-based access control (RBAC)
-/provenance REST API
+This repository contains the full implementation supporting the Data Engineer
+Assessment, including:
 
-# Architecture
-# ETL Pipeline
+- Multi-source clinical ETL pipeline (CSV, JSON, HL7)
+- Schema validation at every stage
+- PHI redaction (regex + rule-based)
+- Record-level provenance and integrity hashing
+- Tiered regulated data lake architecture (Raw/Curated/QLM-Ready)
+- Delta Lake versioning, time travel, and audit logs
+- `/provenance` REST API (FastAPI)
+- Deployment & compliance documentation
 
-Ingest clinical data from multiple sources
-Validate schema at every step
-Scrub PHI using defined rules
-Track provenance (timestamps, transformations, input/output hashes)
-Compute integrity hashes (SHA-256)
-Output QLM-ready dataset
-Expose /provenance API for lineage tracking
+## Repository Structure
 
-# Tiered Data Lake
+- `/code` – ETL pipeline source code  
+- `/api` – FastAPI `/provenance` endpoint  
+- `/docs` – Architecture, compliance, deployment documentation  
+- `/samples` – Example logs, version history, sample data  
+- `/config` – Schema definitions & redaction rules  
+- `/DE_Assignment_Architecture.pdf` – Complete assessment
 
-Raw Zone – Immutable, encrypted, exact copy of data
-Curated Zone – Standardized, partially PHI-redacted, versioned (Delta Lake)
-QLM-Ready Zone – Fully PHI-redacted, hashed, normalized datasets
+## How to Run ETL
 
-# Azure Services Used
+1. Configure ADLS credentials in `pipeline_config.yaml`
+2. Run `etl_pipeline.py` in Databricks or a Spark cluster
+3. Outputs written to ADLS:  
+   - Raw → Curated → QLM-Ready  
+   - Provenance logs → `/audit/provenance`
+   - Integrity hashes → `/integrity`
 
-Azure Data Lake Storage Gen2 – Raw, Curated, QLM-ready zones
-Azure Databricks – ETL processing, schema validation, PHI redaction
-Azure App Service / Functions – Provenance API
-Azure Monitor – Logging and audit
-Delta Lake – Dataset versioning and time travel
-Azure RBAC – Least privilege access control
+## How to Start API
 
-# Compliance
+API endpoint:
 
-HIPAA – PHI removal, RBAC, encryption
-FDA – Data lineage, reproducible pipelines, integrity verification
-CFR Part 11 – Timestamped, immutable audit logs
-Security – Encryption, RBAC, network segmentation
+`GET /provenance/{record_id}`
 
-# Deliverables
+## Compliance
 
-ETL pipeline scripts / notebooks
-Delta Lake tables for tiered zones
-Provenance API code
-Architecture diagrams (physical + logical)
-Compliance documentation
+- Fully aligned with HIPAA, FDA, and CFR Part 11  
+- Complete lineage and reproducibility  
+- Immutable audit logs (WORM)  
+- PHI isolated and redacted before ML/QLM use  
+
+## Contact
+For any questions regarding this submission, feel free to reach out.
+
