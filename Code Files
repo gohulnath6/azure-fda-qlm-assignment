@@ -1,0 +1,87 @@
+/code/etl_pipeline.py
+  
+from ingestion import ingest_file
+from schema_validation import validate_schema
+from phi_redaction import redact_text
+from hashing import compute_hash
+from provenance_logger import log_provenance
+
+def run_etl(input_path, source_type, schema):
+    df = ingest_file(input_path, source_type)
+    validate_schema(df, schema)
+
+    df = df.withColumn("text_redacted", redact_text(df.text))
+    df = df.withColumn("hash", compute_hash(df.text_redacted))
+
+    for row in df.collect():
+        log_provenance(
+            record_id=row.record_id,
+            step="PHI_redaction",
+            input_hash=compute_hash(row.text),
+            output_hash=row.hash
+        )
+
+    df.write.format("delta").mode("append").save("/mnt/qlm-ready")
+
+/code/ingestion.py
+
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.getOrCreate()
+
+def ingest_file(path, source_type):
+    if source_type == "csv":
+        return spark.read.csv(path, header=True)
+    elif source_type == "json":
+        return spark.read.json(path)
+    elif source_type == "hl7":
+        from hl7apy.parser import parse_message
+        raw = open(path).read()
+        msg = parse_message(raw)
+        return spark.createDataFrame([msg.to_dict()])
+
+/code/schema_validation.py
+  
+from jsonschema import validate
+
+def validate_schema(df, schema):
+    for row in df.take(10):  # sample validation
+        validate(instance=row.asDict(), schema=schema)
+
+/code/phi_redaction.py
+
+import re
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+def redact(text):
+    if text is None:
+        return text
+    text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "<PHONE_REDACTED>", text)
+    text = re.sub(r"\b([A-Z][a-z]+ [A-Z][a-z]+)\b", "<NAME_REDACTED>", text)
+    return text
+
+redact_text = udf(redact, StringType())
+
+/code/hashing.py
+
+import hashlib
+
+def compute_hash(value):
+    if value is None:
+        return None
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+/code/provenance_logger.py
+
+import json, datetime
+
+def log_provenance(record_id, step, input_hash, output_hash):
+    entry = {
+        "record_id": record_id,
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "transformation": step,
+        "input_hash": input_hash,
+        "output_hash": output_hash
+    }
+    with open(f"../samples/provenance/{record_id}.json","w") as f:
+        f.write(json.dumps(entry, indent=2))
