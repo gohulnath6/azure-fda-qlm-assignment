@@ -1,0 +1,88 @@
+docs/architecture.md
+
+# Architecture Overview
+
+This document provides the architecture for the FDA-grade ETL pipeline and
+tiered regulated data lake.
+
+## Physical Architecture
+
+- Data Sources (CSV, JSON, HL7)
+- ADLS Gen2 (Raw → Curated → QLM-Ready)
+- Databricks ETL
+- Purview for lineage
+- FastAPI for provenance API
+- Delta Lake for versioning
+
+## Logical Data Flow
+
+1. Ingest data
+2. Validate schema
+3. Redact PHI
+4. Compute integrity hashes
+5. Log provenance
+6. Write to curated / QLM-ready zone
+
+docs/logical_flow.md
+
+# Logical ETL Flow
+
+Raw Input
+   ↓
+Schema Validation
+   ↓
+PHI Redaction
+   ↓
+Hashing & Integrity Checks
+   ↓
+Provenance Logging
+   ↓
+Delta Lake Writes (Versioned)
+   ↓
+QLM-Ready Output + /provenance API
+
+docs/compliance_notes.md
+
+# Compliance Notes
+
+## HIPAA
+- PHI removed before QLM zone
+- Encryption in transit and at rest
+- RBAC for all storage zones
+- Access logging and monitoring
+
+## FDA
+- Full lineage with timestamps
+- SHA-256 integrity hashing
+- Versioned datasets for reproducibility
+- Immutable audit logs via WORM
+
+## CFR Part 11
+- Timestamped entries for all transformations
+- Identity-bound access control
+- Immutable storage of audit logs
+- Delta Lake ACID guarantees prevent silent data modification
+
+docs/deployment_guide.md
+
+# Deployment Guide
+
+## Databricks
+1. Mount ADLS using service principal.
+2. Upload ETL code files.
+3. Configure job clusters and jobs.
+4. Schedule ETL pipelines.
+
+## FastAPI Service
+1. Build container image.
+2. Deploy to Azure App Service.
+3. Enable Managed Identity for ADLS access.
+4. Restrict access using private endpoints.
+
+## Purview
+- Register ADLS and Databricks workspaces.
+- Enable automated scanning.
+
+## Monitoring
+- Enable Log Analytics and Azure Monitor.
+- Configure alerts for sensitive access.
