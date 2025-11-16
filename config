@@ -1,0 +1,47 @@
+config:
+
+config/input_schema.json
+
+{
+  "type": "object",
+  "properties": {
+    "record_id": {"type": "string"},
+    "text": {"type": "string"}
+  },
+  "required": ["record_id", "text"]
+}
+
+config/output_schema.json
+
+{
+  "type": "object",
+  "properties": {
+    "record_id": {"type": "string"},
+    "text_redacted": {"type": "string"},
+    "hash": {"type": "string"}
+  },
+  "required": ["record_id", "text_redacted", "hash"]
+}
+
+config/redaction_rules.json
+
+{
+  "phone": "\\b\\d{3}[-.]?\\d{3}[-.]?\\d{4}\\b",
+  "name": "\\b[A-Z][a-z]+ [A-Z][a-z]+\\b"
+}
+
+config/pipeline_config.yaml
+
+etl:
+  input_path: /mnt/raw
+  output_path: /mnt/qlm-ready
+  provenance_path: /mnt/audit/provenance
+  batch_size: 1000
+
+security:
+  encryption: true
+  rbac: true
+
+compliance:
+  enable_audit_logging: true
+
