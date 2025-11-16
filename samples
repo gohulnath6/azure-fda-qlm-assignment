@@ -1,0 +1,53 @@
+samples/
+   provenance/
+   delta_history/
+   audit_logs/
+   input/
+   output/
+
+samples/provenance/sample_provenance_log.json
+
+{
+  "record_id": "rec_001",
+  "timestamp": "2025-02-01T12:44:21Z",
+  "transformation": "PHI_redaction",
+  "input_hash": "a89fd1d3b...",
+  "output_hash": "19bd9f117..."
+}
+
+samples/delta_history/clinical_notes_history.csv
+
+version,timestamp,operation
+0,2025-02-01T10:00:00,CREATE TABLE
+1,2025-02-01T11:30:12,MERGE (batch_20250201)
+2,2025-02-02T09:10:44,WRITE (batch_20250202)
+
+samples/audit_logs/access_log.json
+
+{
+  "user": "data_engineer",
+  "action": "READ",
+  "dataset": "curated.clinical_notes",
+  "timestamp": "2025-02-03T16:11:20Z"
+}
+
+samples/audit_logs/transformation_log.json
+
+{
+  "pipeline": "ETL_v3",
+  "transformation": "PHI_redaction_v1",
+  "timestamp": "2025-02-03T09:14:11Z",
+  "records_processed": 14592
+}
+
+samples/input/sample.csv
+
+record_id,text
+1,John Smith visited on 2024-05-01. Phone: 555-123-4567
+
+samples/output/redacted_sample.json
+
+{
+  "record_id": "1",
+  "text_redacted": "<NAME_REDACTED> visited on <DATE_REDACTED>. Phone: <PHONE_REDACTED>"
+}
