@@ -1,0 +1,18 @@
+/api/main.py
+
+from fastapi import FastAPI
+import json, os
+
+app = FastAPI()
+
+@app.get("/provenance/{record_id}")
+def get_provenance(record_id: str):
+    path = f"../samples/provenance/{record_id}.json"
+    if os.path.exists(path):
+        return json.load(open(path))
+    return {"error": "Record not found"}
+
+/api/requirements.txt
+
+fastapi
+uvicorn
